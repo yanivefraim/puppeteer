@@ -40,6 +40,12 @@ module.exports.addTests = function({testRunner, expect, puppeteer, DeviceDescrip
       await newPage.close();
       expect(await browser.pages()).not.toContain(newPage);
     });
+    it('should have closed equal to "true" after page was closed', async({browser}) => {
+      const newPage = await browser.newPage();
+      expect(await newPage.closed).toBe(false);
+      await newPage.close();
+      expect(await newPage.closed).toBe(true);
+    });
     it('should run beforeunload if asked for', async({browser, server}) => {
       const newPage = await browser.newPage();
       await newPage.goto(server.PREFIX + '/beforeunload.html');
