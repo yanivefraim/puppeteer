@@ -311,6 +311,31 @@ module.exports.addTests = function({testRunner, expect}) {
     });
   });
 
+  describe('ElementHandle.$$eval', function() {
+    it('should work', async({page, server}) => {
+      await page.setContent('<html><body><div class="tweet"><div class="like">100</div><div class="retweets">10</div></div></body></html>');
+      const tweet = await page.$('.tweet');
+      const content = await tweet.$$eval('div', nodes => nodes.map(node => node.innerText));
+      expect(content).toEqual(['100', '10']);
+    });
+
+    it('should retrieve content from subtree', async({page, server}) => {
+      const htmlContent = '<div class="a">not-a-child-div</div><div id="myId"><div class="a">a-child-div1</div><div class="a">a-child-div2</div></div>';
+      await page.setContent(htmlContent);
+      const elementHandle = await page.$('#myId');
+      const content = await elementHandle.$$eval('.a', nodes => nodes.map(node => node.innerText));
+      expect(content).toEqual(['a-child-div1', 'a-child-div2']);
+    });
+
+    // fit('should throw in case of missing selector', async({page, server}) => {
+    //   const htmlContent = '<div class="a">not-a-child-div</div><div id="myId"></div>';
+    //   await page.setContent(htmlContent);
+    //   const elementHandle = await page.$('#myId');
+    //   const content = await elementHandle.$$eval('.a', nodes => nodes.map(node => node.innerText));
+    //   expect(content).toEqual({});
+    // });
+  });
+
   describe('ElementHandle.$$', function() {
     it('should query existing elements', async({page, server}) => {
       await page.setContent('<html><body><div>A</div><br/><div>B</div></body></html>');
