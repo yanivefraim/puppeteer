@@ -313,29 +313,49 @@ module.exports.addTests = function({testRunner, expect, puppeteer, DeviceDescrip
       await page.waitFor((arg1, arg2) => arg1 !== arg2, {}, 1, 2);
     });
   });
-  fdescribe('Page.waitForResponse', function() {
+  describe('Page.waitForResponse', function() {
     it('should wait for response', async({page, server}) => {
+      let serverResponse;
       await page.goto(server.PREFIX + '/playground.html');
-      server.setRoute('/get', (req, res) => setTimeout(() => res.end(), 1000));
+      server.setRoute('/get', (req, res) => {serverResponse = () => res.end();});
       page.evaluate(() =>
         fetch('./get', { method: 'GET'})
             .then(() => document.querySelector('body').innerHTML = '123'));
+      // server will response right after starting 'waitForResponse'
+      setTimeout(() => serverResponse(), 100);
       await page.waitForResponse(server.PREFIX + '/get');
       expect(await page.$eval('body', div => div.innerHTML)).toBe('123');
     });
-  });
-  fdescribe('Page.waitForRequest', function() {
-    it('should wait for response', async({page, server}) => {
-      let req;
+    it('should wait for response2', async({page, server}) => {
       await page.goto(server.PREFIX + '/playground.html');
-      server.setRoute('/get', (req, res) => setTimeout(() => {
-        req = true;
-        res.end();
-      }, 1000));
+      server.setRoute('/get', (req, res) => res.end());
+      await page.evaluate(() =>
+        fetch('./get', { method: 'GET'})
+            .then(() => document.querySelector('body').innerHTML = '123'));
+      // await page.waitFor(1000);
+      await page.waitForResponse(server.PREFIX + '/get');
+      expect(await page.$eval('body', div => div.innerHTML)).toBe('123');
+    });
+    it('should wait for response with regex', async({page, server}) => {
+      let serverResponse;
+      await page.goto(server.PREFIX + '/playground.html');
+      server.setRoute('/get', (req, res) => {serverResponse = () => res.end();});
       page.evaluate(() =>
         fetch('./get', { method: 'GET'})
             .then(() => document.querySelector('body').innerHTML = '123'));
-      await page.waitForResponse(server.PREFIX + '/get');
+      // server will response right after starting 'waitForResponse'
+      setTimeout(() => serverResponse(), 100);
+      await page.waitForResponse(new RegExp('(.*):(\d*)\/?(.*)\/get'));
+      expect(await page.$eval('body', div => div.innerHTML)).toBe('123');
+    });
+    it('should wait for response with regex2', async({page, server}) => {
+      await page.goto(server.PREFIX + '/playground.html');
+      server.setRoute('/get', (req, res) => res.end());
+      await page.evaluate(() =>
+        fetch('./get', { method: 'GET'})
+            .then(() => document.querySelector('body').innerHTML = '123'));
+      // await page.waitFor(1000);
+      await page.waitForResponse(new RegExp('(.*):(\d*)\/?(.*)\/get'));
       expect(await page.$eval('body', div => div.innerHTML)).toBe('123');
     });
   });
