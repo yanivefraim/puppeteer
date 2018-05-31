@@ -1646,6 +1646,26 @@ module.exports.addTests = function({testRunner, expect, puppeteer, DeviceDescrip
       await page.evaluate(workerObj => workerObj.terminate(), workerObj);
       expect(await workerDestroyedPromise).toBe(worker);
     });
+    fit('Page.workers', async function({page, server}) {
+      const messagePromise = new Promise(resolve => {
+        page.on('console', msg => resolve(msg.text()));
+      });
+
+      await page.setContent(`<!DOCTYPE html>
+        <script id="worker1" type="javascript/worker">
+          console.log('a', 'b'); //only 'a' will be logged
+        </script>
+        <script>
+          const blob = new Blob([
+            document.querySelector('#worker1').textContent
+          ], { type: "text/javascript" })
+
+          new Worker(window.URL.createObjectURL(blob));
+        </script>`
+      );
+      const message = await messagePromise;
+      expect(message).toEqual(['a', 'b']);
+    });
     it('should report console logs', async function({page}) {
       const logPromise = new Promise(x => page.on('console', x));
       await page.evaluate(() => new Worker(`data:text/javascript,console.log(1)`));
